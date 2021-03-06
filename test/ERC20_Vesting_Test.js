@@ -1,7 +1,5 @@
-const ERC20_Asset_Pool = artifacts.require("ERC20_Asset_Pool");
-const ERC20_Bridge_Logic = artifacts.require("ERC20_Bridge_Logic");
-const Base_Faucet_Token = artifacts.require("Base_Faucet_Token");
-const MultisigControl = artifacts.require("MultisigControl");
+const Vega_2 = artifacts.require("Vega_2");
+const ERC20_Vesting = artifacts.require("ERC20_Vesting");
 
 
 var abi = require('ethereumjs-abi');
@@ -22,9 +20,163 @@ let private_keys =
         "0x8447913d48723cbabdcead3377f49e82a3d494a3":Buffer.from("5d2b4629b4b06c8d6991d419126270741425c7a784c61179597098521f91afc5",'hex'),
         "0x32321e10a8a0e95f261591520c134d4a6d1743c1":Buffer.from("0ff107281c32f8940cb2a0c85bd0627bc427331ad2c9dd2811f1f01d1edb124a",'hex')
     };
-
+let wallets = [
+  "0xb89a165ea8b619c14312db316baaa80d2a98b493",
+  "0x4ac2efe06b867213698ab317e9569872f8a5e85a",
+  "0xbeec72c697e54598271ac242bf82cde87d5632e0",
+  "0x4a03ccfbd091354723b9d46043f7cb194d94331b",
+  "0x56a16eb54698324304e29a23d65d2ff7f0b7170b",
+  "0x97166b688c609495c203df28cd2e6d5281f9f71f",
+  "0x9c0b2939538b45b72adb3ec7c52e271f2560c27f",
+  "0x13d6d873b31de82ae6724d3e5894b2b40fb968b2",
+  "0x8447913d48723cbabdcead3377f49e82a3d494a3",
+  "0x32321e10a8a0e95f261591520c134d4a6d1743c1"]
 let new_asset_id = crypto.randomBytes(32);
 
+
+///UTILITIES//////
+let create_tranche = async (cliff_start, duration) =>{
+  //create_tranche(uint256 cliff_start, uint256 duration) public only_controller
+  let erc20_vesting_instance = await ERC20_Vesting.deployed();
+  let receipt = await erc20_vesting_instance.create_tranche(cliff_start, duration);
+
+  let result = receipt.logs.find(l => l.event === "Tranche_Created");
+  if(result === undefined){
+    throw "Tranche_Created event was not emitted";
+  }
+  return result;
+}
+
+let issue_into_tranche = async (user, tranche_id, amount) =>{
+  //issue_into_tranche(address user, uint8 tranche_id, uint256 amount) public controller_or_issuer {
+  let erc20_vesting_instance = await ERC20_Vesting.deployed();
+  let receipt = await erc20_vesting_instance.issue_into_tranche(user, tranche_id, amount);
+  let result = receipt.logs.find(l => l.event === "Tranche_Balance_Added");
+  if(result === undefined){
+    throw "Tranche_Balance_Added event was not emitted";
+  }
+  return result;
+}
+let move_into_tranche = async (user, tranche_id, amount) =>{
+  //move_into_tranche(address user, uint8 tranche_id, uint256 amount) public only_controller {
+  let erc20_vesting_instance = await ERC20_Vesting.deployed();
+  let receipt = await erc20_vesting_instance.move_into_tranche(user, tranche_id, amount);
+}
+let get_tranche_balance = async (user, tranche_id) =>{
+  //get_tranche_balance(address user, uint8 tranche_id) public view returns(uint256)
+  let erc20_vesting_instance = await ERC20_Vesting.deployed();
+  return await erc20_vesting_instance.get_tranche_balance(user, tranche_id);
+}
+let get_vested_for_tranche = async (user, tranche_id) =>{
+  //get_vested_for_tranche(address user, uint8 tranche_id) public view returns(uint256)
+  let erc20_vesting_instance = await ERC20_Vesting.deployed();
+  return await erc20_vesting_instance.get_vested_for_tranche(user, tranche_id);
+}
+let v1_bal = async (user) =>{
+  //v1_bal(address user) internal view returns(uint256)
+  let erc20_vesting_instance = await ERC20_Vesting.deployed();
+  let receipt = await erc20_vesting_instance.v1_bal(user);
+}
+let user_total_all_tranches = async (user) =>{
+  //user_total_all_tranches(address user) public view returns(uint256)
+  let erc20_vesting_instance = await ERC20_Vesting.deployed();
+  return await erc20_vesting_instance.user_total_all_tranches(user);
+}
+let withdraw_from_tranche = async (tranche_id) =>{
+  //withdraw_from_tranche(uint8 tranche_id) public
+  let erc20_vesting_instance = await ERC20_Vesting.deployed();
+  let receipt = await erc20_vesting_instance.withdraw_from_tranche(tranche_id);
+}
+let stake_tokens = async (amount, vega_public_key) =>{
+  //stake_tokens(uint256 amount, bytes32 vega_public_key) public
+  let erc20_vesting_instance = await ERC20_Vesting.deployed();
+  let receipt = await erc20_vesting_instance.stake_tokens(amount, vega_public_key);
+}
+let remove_stake = async (user, amount) =>{
+  // remove_stake(address user, uint256 amount) public {
+  let erc20_vesting_instance = await ERC20_Vesting.deployed();
+  let receipt = await erc20_vesting_instance.remove_stake(user, amount);
+}
+let permit_issuer = async (issuer, amount) =>{
+  // permit_issuer(address issuer, uint256 amount) public only_controller
+  let erc20_vesting_instance = await ERC20_Vesting.deployed();
+  let receipt = await erc20_vesting_instance.permit_issuer(issuer, amount);
+}
+let revoke_issuer = async (issuer) =>{
+  // revoke_issuer(address issuer) public only_controller
+  let erc20_vesting_instance = await ERC20_Vesting.deployed();
+  let receipt = await erc20_vesting_instance.revoke_issuer(issuer);
+}
+let set_controller = async (new_controller) =>{
+  // set_controller(address new_controller) public only_controller
+  let erc20_vesting_instance = await ERC20_Vesting.deployed();
+  let receipt = await erc20_vesting_instance.set_controller(new_controller);
+}
+let get_tranche = async (tranche_id) =>{
+  // mapping(uint8 => tranche) public tranches;
+  let erc20_vesting_instance = await ERC20_Vesting.deployed();
+  return await erc20_vesting_instance.tranches(tranche_id);
+}
+let get_v2_address = async (tranche_id) =>{
+  // mapping(uint8 => tranche) public tranches;
+  let erc20_vesting_instance = await ERC20_Vesting.deployed();
+  return await erc20_vesting_instance.v2_address();
+}
+let get_vega_balance = async (user) => {
+  let vega_2_instance = await Vega_2.deployed();
+  return await vega_2_instance.balanceOf(user);
+}
+/////////////
+
+
+contract("ERC20_Vesting",  (accounts) => {
+
+    it("create_tranche", async () => {
+      let cliff_start = "999999999999999999";
+      let duration = "300";//5 min
+      let tranche_created_event = await create_tranche(cliff_start, duration);
+      let tranche = await get_tranche(tranche_created_event.args.tranche_id);
+      /*
+      console.log("tranche_id: " + tranche_created_event.args.tranche_id);
+      console.log("cliff start: " + tranche.cliff_start.toString());
+      console.log("duration: " + tranche.duration.toString());*/
+
+      assert.equal(tranche.cliff_start.toString(), cliff_start, "cliff_start wrong");
+      assert.equal(tranche.duration.toString(), duration, "duration wrong");
+    });
+
+    it("issue_into_tranche", async () => {
+
+      let vesting_contract_balance = await get_vega_balance(ERC20_Vesting.address);
+      console.log("!!!!!!!!!!!!!!!!!!!!!!!!!!")
+      console.log(vesting_contract_balance.toString())
+      console.log(await get_v2_address());
+      console.log("!!!!!!!!!!!!!!!!!!!!!!!!!!")
+
+      let tranche_id = (await create_tranche("999999999999999999", "300")).args.tranche_id;
+      let amt_to_issue = "42";
+
+      console.log("tranche_id: " + tranche_id);
+      //get wallets[1] balance before
+      let bal_before = await get_tranche_balance(wallets[1], tranche_id);
+      console.log("before: " + bal_before);
+      let total_before = await user_total_all_tranches(wallets[1]);
+      console.log("before: " + total_before);
+      await issue_into_tranche(wallets[1], tranche_id.toString(), amt_to_issue);
+      console.log('issued');
+
+      //get wallets[1] balance after
+      let bal_after = await get_tranche_balance(wallets[1], tranche_id);
+      console.log("after: " + bal_after);
+      let total_after = await user_total_all_tranches(wallets[1]);
+      console.log("after: " + total_after);
+
+    });
+
+
+});
+
+/*
 let bridge_addresses = require(root_path + "bridge_addresses.json");
 
 async function deposit_asset(bridge_logic_instance, test_token_instance, account, token_balance){
@@ -130,77 +282,6 @@ async function remove_asset(bridge_logic_instance, from_address){
 }
 
 
-
-////FUNCTIONS
-contract("ERC20_Bridge_Logic Function: list_asset",  (accounts) => {
-  //function list_asset(address asset_source, uint256 asset_id, bytes32 vega_id, uint256 nonce, bytes memory signatures) public;
-
-
-    it("asset that was not listed is listed after running list_asset", async () => {
-
-      let bridge_logic_instance = await ERC20_Bridge_Logic.deployed();
-      let test_token_instance = await Base_Faucet_Token.deployed();
-
-      //new asset ID is not listed
-      assert.equal(
-          await bridge_logic_instance.is_asset_listed(bridge_addresses.test_token_address),
-          false,
-          "token is listed, shouldn't be"
-      );
-      //unlisted asset cannot be deposited
-      try{
-        await deposit_asset(bridge_logic_instance, test_token_instance, account[0]);
-        assert.equal(
-            true,
-            false,
-            "token deposit worked, shouldn't have"
-        );
-      } catch(e){}
-
-      //list new asset
-      list_asset(bridge_logic_instance, accounts[0]);
-
-      //new asset ID is listed
-      assert.equal(
-          await bridge_logic_instance.is_asset_listed(bridge_addresses.test_token_address),
-          true,
-          "token isn't listed, should be"
-      );
-      //deposit new asset
-      let amount_deposited = await deposit_asset(bridge_logic_instance, test_token_instance, accounts[0]);
-
-      //user balance deducted
-      assert.equal(
-          await test_token_instance.balanceOf(accounts[0]),
-          0,
-          "token balance was not deposited, balance should be zero"
-      );
-
-
-    });
-
-    it("list_asset fails to list an already listed asset", async () => {
-      let bridge_logic_instance = await ERC20_Bridge_Logic.deployed();
-      //new asset ID is listed
-      assert.equal(
-          await bridge_logic_instance.is_asset_listed(bridge_addresses.test_token_address),
-          true,
-          "token isn't listed, should be"
-      );
-      //list new asset fails
-      try {
-        await list_asset(bridge_logic_instance, accounts[0]);
-        assert.equal(
-          false,
-            true,
-            "attempting to relist token succeded, shouldn't have"
-        );
-      }catch(e){}
-
-    });
-
-    //NOTE signature tests are covered in MultisigControl
-});
 contract("ERC20_Bridge_Logic Function: remove_asset",   (accounts) => {
     //function remove_asset(address asset_source, uint256 asset_id, uint256 nonce, bytes memory signatures) public;
     it("listed asset is not listed after running remove_asset and no longer able to deposited", async () => {
@@ -209,7 +290,9 @@ contract("ERC20_Bridge_Logic Function: remove_asset",   (accounts) => {
 
       try {
         await list_asset(bridge_logic_instance, accounts[0]);
-      } catch(e){/*ignore if already listed*/}
+      } catch(e){
+    //ignore if already listed
+  }
 
       //new asset ID is listed
       assert.equal(
@@ -245,7 +328,9 @@ contract("ERC20_Bridge_Logic Function: set_deposit_minimum",   (accounts) => {
 
       try {
         await list_asset(bridge_logic_instance, accounts[0]);
-      } catch(e){/*ignore if already listed*/}
+      } catch(e){
+    //ignore if already listed
+  }
 
       //new asset ID is listed
       assert.equal(
@@ -302,7 +387,9 @@ contract("ERC20_Bridge_Logic Function: set_deposit_maximum",   (accounts) => {
 
       try {
         await list_asset(bridge_logic_instance, accounts[0]);
-      } catch(e){/*ignore if already listed*/}
+      } catch(e){
+      //ignore if already listed
+    }
 
       //new asset ID is listed
       assert.equal(
@@ -398,7 +485,9 @@ contract("ERC20_Bridge_Logic Function: withdraw_asset",   (accounts) => {
       //list asset
       try {
         await list_asset(bridge_logic_instance, accounts[0]);
-      } catch(e){/*ignore if already listed*/}
+      } catch(e){
+      //ignore if already listed
+    }
 
       //new asset ID is listed
       assert.equal(
@@ -441,7 +530,9 @@ contract("ERC20_Bridge_Logic Function: withdraw_asset",   (accounts) => {
       //list asset
       try {
         await list_asset(bridge_logic_instance, accounts[0]);
-      } catch(e){/*ignore if already listed*/}
+      } catch(e){
+      //ignore if already listed
+    }
 
       //new asset ID is listed
       assert.equal(
@@ -473,7 +564,9 @@ contract("ERC20_Bridge_Logic Function: withdraw_asset",   (accounts) => {
       //list asset
       try {
         await list_asset(bridge_logic_instance, accounts[0]);
-      } catch(e){/*ignore if already listed*/}
+      } catch(e){
+        //ignore if already listed
+      }
 
       //new asset ID is listed
       assert.equal(
@@ -560,7 +653,9 @@ contract("ERC20_Bridge_Logic Function: get_deposit_minimum",   (accounts) => {
 
       try {
         await list_asset(bridge_logic_instance, accounts[0]);
-      } catch(e){/*ignore if already listed*/}
+      } catch(e){
+        //ignore if already listed
+      }
 
       //new asset ID is listed
       assert.equal(
@@ -689,3 +784,4 @@ contract("ERC20_Bridge_Logic Function: get_asset_source",   (accounts) => {
 
     });
 });
+*/

@@ -11,6 +11,5 @@ module.exports = async function (deployer) {
   await deployer.deploy(Vega_2, "64999723000000000000000000", "1709605351", "VEGA PROTOCOL - VEGA TOKEN V2", "VEGA");
   await deployer.deploy(ERC20_Vesting, Vega_2.address);
   let vega_2_instance = await Vega_2.deployed();
-  console.log(vega_2_instance)
   await vega_2_instance.transfer(ERC20_Vesting.address,"64999723000000000000000000");
 };
