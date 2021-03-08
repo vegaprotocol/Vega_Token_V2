@@ -13,7 +13,7 @@ contract ERC20_Vesting {
   uint256 public total_locked;
   address constant public v1_address = 0xD249B16f61cB9489Fe0Bb046119A48025545b58a;
   address public v2_address;
-  uint256 constant accuracy_scale = 10000000;
+  uint256 constant accuracy_scale = 100000000000;
 
   constructor(address token_v2_address) {
     /// @notice assuming 3m locked, this is going to be terrible to test
@@ -59,7 +59,7 @@ contract ERC20_Vesting {
 
   //note tranche zero is perma-locked
   function create_tranche(uint256 cliff_start, uint256 duration) public only_controller {
-    require(cliff_start >= block.timestamp);
+    require(cliff_start >= block.timestamp, "cliff_start must be future time");
 
     tranches[tranche_count] = tranche(cliff_start, duration);
     emit Tranche_Created(tranche_count, cliff_start, duration);
@@ -131,10 +131,19 @@ contract ERC20_Vesting {
       uint256 available_for_withdraw = available_vested - user_stats[user].lien;
   */
   function get_vested_for_tranche(address user, uint8 tranche_id) public view returns(uint256) {
-    return ((((accuracy_scale * (block.timestamp - tranches[tranche_id].cliff_start)) / tranches[tranche_id].duration)
-    * user_stats[user].tranche_balances[tranche_id].total_deposited) / accuracy_scale)
-    - user_stats[user].tranche_balances[tranche_id].total_claimed;
+
+    if(block.timestamp < tranches[tranche_id].cliff_start){
+      return 1;
+    }
+    else if(block.timestamp > tranches[tranche_id].cliff_start + tranches[tranche_id].duration){
+      return user_stats[user].tranche_balances[tranche_id].total_deposited -  user_stats[user].tranche_balances[tranche_id].total_claimed;
+    } else {
+      return (((( accuracy_scale * (block.timestamp - tranches[tranche_id].cliff_start) )  / tranches[tranche_id].duration
+          ) * user_stats[user].tranche_balances[tranche_id].total_deposited
+        ) / accuracy_scale ) - user_stats[user].tranche_balances[tranche_id].total_claimed;
+    }
   }
+
   function v1_bal(address /*user*/) internal view returns(uint256) {
     return 0;
     //TODO UNDO THIS TO ENABLE v1 migration:

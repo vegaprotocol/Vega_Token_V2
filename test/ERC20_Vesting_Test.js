@@ -86,6 +86,11 @@ let withdraw_from_tranche = async (tranche_id) =>{
   //withdraw_from_tranche(uint8 tranche_id) public
   let erc20_vesting_instance = await ERC20_Vesting.deployed();
   let receipt = await erc20_vesting_instance.withdraw_from_tranche(tranche_id);
+  let result = receipt.logs.find(l => l.event === "Tranche_Balance_Removed");
+  if(result === undefined){
+    throw "Tranche_Balance_Removed event was not emitted";
+  }
+  return result;
 }
 let stake_tokens = async (amount, vega_public_key) =>{
   //stake_tokens(uint256 amount, bytes32 vega_public_key) public
@@ -126,6 +131,12 @@ let get_vega_balance = async (user) => {
   let vega_2_instance = await Vega_2.deployed();
   return await vega_2_instance.balanceOf(user);
 }
+
+
+function timeout(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 /////////////
 
 
@@ -173,6 +184,46 @@ contract("ERC20_Vesting",  (accounts) => {
 
     });
 
+    it("withdraw_from_tranche", async () => {
+      //create_tranche
+      let cliff_start = Math.floor(Date.now()/1000);
+
+      console.log(cliff_start)
+      let duration = "1500";
+      let tranche_created_event = await create_tranche(cliff_start, duration);
+      let tranche = await get_tranche(tranche_created_event.args.tranche_id);
+      //issue_into_tranche
+      await issue_into_tranche(wallets[0], tranche_created_event.args.tranche_id.toString(), "100000000000000000000");
+      console.log("issued");
+      let initial_vested = await get_vested_for_tranche(wallets[0], tranche_created_event.args.tranche_id.toString());
+      console.log("vested: " + initial_vested);
+      console.log("tranche_id: " + tranche_created_event.args.tranche_id.toString())
+
+
+      for(let cycle = 0; cycle < 60; cycle++){
+        await timeout(5000);
+        //this triggers a block to be mined
+        await issue_into_tranche(wallets[3], tranche_created_event.args.tranche_id.toString(), "1");
+        //should be done
+        vested = await get_vested_for_tranche(wallets[0], tranche_created_event.args.tranche_id.toString());
+        console.log("vested: " + web3.utils.fromWei(vested))
+
+        if(cycle % 7 === 0){
+          let withdraw_result = await withdraw_from_tranche(tranche_created_event.args.tranche_id);
+          console.log("withdrawn: " + web3.utils.fromWei(withdraw_result.args.amount));
+          console.log("total remaining: " + web3.utils.fromWei(await user_total_all_tranches(wallets[0])))
+        }
+      }
+      //this triggers a block to be mined
+      await issue_into_tranche(wallets[3], tranche_created_event.args.tranche_id.toString(), "1");
+      //should be done
+      vested = await get_vested_for_tranche(wallets[0], tranche_created_event.args.tranche_id.toString());
+      console.log("vested: " + vested)
+      let withdraw_result = await withdraw_from_tranche(tranche_created_event.args.tranche_id);
+      console.log("withdrawn: " + withdraw_result.args.amount.toString());
+
+
+    });
 
 });
 
