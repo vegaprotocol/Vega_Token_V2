@@ -59,8 +59,6 @@ contract ERC20_Vesting {
 
   //note tranche zero is perma-locked
   function create_tranche(uint256 cliff_start, uint256 duration) public only_controller {
-    require(cliff_start >= block.timestamp, "cliff_start must be future time");
-
     tranches[tranche_count] = tranche(cliff_start, duration);
     emit Tranche_Created(tranche_count, cliff_start, duration);
     //sol 0.8 comes with auto-overflow protection
@@ -133,9 +131,9 @@ contract ERC20_Vesting {
   function get_vested_for_tranche(address user, uint8 tranche_id) public view returns(uint256) {
 
     if(block.timestamp < tranches[tranche_id].cliff_start){
-      return 1;
+      return 0;
     }
-    else if(block.timestamp > tranches[tranche_id].cliff_start + tranches[tranche_id].duration){
+    else if(block.timestamp > tranches[tranche_id].cliff_start + tranches[tranche_id].duration || tranches[tranche_id].duration == 0){
       return user_stats[user].tranche_balances[tranche_id].total_deposited -  user_stats[user].tranche_balances[tranche_id].total_claimed;
     } else {
       return (((( accuracy_scale * (block.timestamp - tranches[tranche_id].cliff_start) )  / tranches[tranche_id].duration

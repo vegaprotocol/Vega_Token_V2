@@ -142,19 +142,33 @@ function timeout(ms) {
 
 contract("ERC20_Vesting",  (accounts) => {
 
-    it("create_tranche", async () => {
-      let cliff_start = "999999999999999999";
-      let duration = "300";//5 min
-      let tranche_created_event = await create_tranche(cliff_start, duration);
-      let tranche = await get_tranche(tranche_created_event.args.tranche_id);
-      /*
-      console.log("tranche_id: " + tranche_created_event.args.tranche_id);
-      console.log("cliff start: " + tranche.cliff_start.toString());
-      console.log("duration: " + tranche.duration.toString());*/
+      it("create_tranche", async () => {
+        let cliff_start = "999999999999999999";
+        let duration = "300";//5 min
+        let tranche_created_event = await create_tranche(cliff_start, duration);
+        let tranche = await get_tranche(tranche_created_event.args.tranche_id);
+        /*
+        console.log("tranche_id: " + tranche_created_event.args.tranche_id);
+        console.log("cliff start: " + tranche.cliff_start.toString());
+        console.log("duration: " + tranche.duration.toString());*/
 
-      assert.equal(tranche.cliff_start.toString(), cliff_start, "cliff_start wrong");
-      assert.equal(tranche.duration.toString(), duration, "duration wrong");
-    });
+        assert.equal(tranche.cliff_start.toString(), cliff_start, "cliff_start wrong");
+        assert.equal(tranche.duration.toString(), duration, "duration wrong");
+      });
+
+      it("create auto-open tranche", async () => {
+        let cliff_start = "0";
+        let duration = "0";//5 min
+        let tranche_created_event = await create_tranche(cliff_start, duration);
+        let tranche = await get_tranche(tranche_created_event.args.tranche_id);
+        /*
+        console.log("tranche_id: " + tranche_created_event.args.tranche_id);
+        console.log("cliff start: " + tranche.cliff_start.toString());
+        console.log("duration: " + tranche.duration.toString());*/
+
+        assert.equal(tranche.cliff_start.toString(), cliff_start, "cliff_start wrong");
+        assert.equal(tranche.duration.toString(), duration, "duration wrong");
+      });
 
     it("issue_into_tranche", async () => {
 
@@ -189,18 +203,18 @@ contract("ERC20_Vesting",  (accounts) => {
       let cliff_start = Math.floor(Date.now()/1000);
 
       console.log(cliff_start)
-      let duration = "1500";
+      let duration = "500000000";
       let tranche_created_event = await create_tranche(cliff_start, duration);
       let tranche = await get_tranche(tranche_created_event.args.tranche_id);
       //issue_into_tranche
-      await issue_into_tranche(wallets[0], tranche_created_event.args.tranche_id.toString(), "100000000000000000000");
+      await issue_into_tranche(wallets[0], tranche_created_event.args.tranche_id.toString(), "10000000000000000000000");
       console.log("issued");
       let initial_vested = await get_vested_for_tranche(wallets[0], tranche_created_event.args.tranche_id.toString());
       console.log("vested: " + initial_vested);
       console.log("tranche_id: " + tranche_created_event.args.tranche_id.toString())
 
 
-      for(let cycle = 0; cycle < 60; cycle++){
+      for(let cycle = 0; cycle < 600; cycle++){
         await timeout(5000);
         //this triggers a block to be mined
         await issue_into_tranche(wallets[3], tranche_created_event.args.tranche_id.toString(), "1");
@@ -208,7 +222,7 @@ contract("ERC20_Vesting",  (accounts) => {
         vested = await get_vested_for_tranche(wallets[0], tranche_created_event.args.tranche_id.toString());
         console.log("vested: " + web3.utils.fromWei(vested))
 
-        if(cycle % 7 === 0){
+        if(cycle % 20 === 0){
           let withdraw_result = await withdraw_from_tranche(tranche_created_event.args.tranche_id);
           console.log("withdrawn: " + web3.utils.fromWei(withdraw_result.args.amount));
           console.log("total remaining: " + web3.utils.fromWei(await user_total_all_tranches(wallets[0])))
