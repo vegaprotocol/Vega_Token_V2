@@ -175,11 +175,10 @@ contract ERC20_Vesting {
     user_stats[msg.sender].lien += amount;
     emit Stake_Deposited(msg.sender, amount, vega_public_key);
   }
-  function remove_stake(address user, uint256 amount) public {
-    require(user_stats[user].lien - amount < user_stats[user].lien);
+  function remove_stake(uint256 amount) public {
     //TODO add multisig_control IFF needed
     user_stats[msg.sender].lien -= amount;
-    emit Stake_Removed(user, amount);
+    emit Stake_Removed(msg.sender, amount);
   }
   function permit_issuer(address issuer, uint256 amount) public only_controller {
     /// @notice revoke is required first to stop a simple double allowance attack

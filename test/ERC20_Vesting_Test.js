@@ -97,10 +97,10 @@ let stake_tokens = async (amount, vega_public_key) =>{
   let erc20_vesting_instance = await ERC20_Vesting.deployed();
   let receipt = await erc20_vesting_instance.stake_tokens(amount, vega_public_key);
 }
-let remove_stake = async (user, amount) =>{
-  // remove_stake(address user, uint256 amount) public {
+let remove_stake = async (amount) =>{
+  // remove_stake(uint256 amount) public {
   let erc20_vesting_instance = await ERC20_Vesting.deployed();
-  let receipt = await erc20_vesting_instance.remove_stake(user, amount);
+  let receipt = await erc20_vesting_instance.remove_stake(amount);
 }
 let permit_issuer = async (issuer, amount) =>{
   // permit_issuer(address issuer, uint256 amount) public only_controller
@@ -173,28 +173,28 @@ contract("ERC20_Vesting",  (accounts) => {
     it("issue_into_tranche", async () => {
 
       let vesting_contract_balance = await get_vega_balance(ERC20_Vesting.address);
-      console.log("!!!!!!!!!!!!!!!!!!!!!!!!!!")
-      console.log(vesting_contract_balance.toString())
-      console.log(await get_v2_address());
-      console.log("!!!!!!!!!!!!!!!!!!!!!!!!!!")
+      //console.log("!!!!!!!!!!!!!!!!!!!!!!!!!!")
+      //console.log(vesting_contract_balance.toString())
+      //console.log(await get_v2_address());
+      //console.log("!!!!!!!!!!!!!!!!!!!!!!!!!!")
 
       let tranche_id = (await create_tranche("999999999999999999", "300")).args.tranche_id;
       let amt_to_issue = "42";
 
-      console.log("tranche_id: " + tranche_id);
+      //console.log("tranche_id: " + tranche_id);
       //get wallets[1] balance before
       let bal_before = await get_tranche_balance(wallets[1], tranche_id);
-      console.log("before: " + bal_before);
+      //console.log("before: " + bal_before);
       let total_before = await user_total_all_tranches(wallets[1]);
-      console.log("before: " + total_before);
+      //console.log("before: " + total_before);
       await issue_into_tranche(wallets[1], tranche_id.toString(), amt_to_issue);
-      console.log('issued');
+      //console.log('issued');
 
       //get wallets[1] balance after
       let bal_after = await get_tranche_balance(wallets[1], tranche_id);
-      console.log("after: " + bal_after);
+      //console.log("after: " + bal_after);
       let total_after = await user_total_all_tranches(wallets[1]);
-      console.log("after: " + total_after);
+      //console.log("after: " + total_after);
 
     });
 
@@ -202,42 +202,106 @@ contract("ERC20_Vesting",  (accounts) => {
       //create_tranche
       let cliff_start = Math.floor(Date.now()/1000);
 
-      console.log(cliff_start)
-      let duration = "500000000";
+      //console.log(cliff_start)
+      let duration = "10";
       let tranche_created_event = await create_tranche(cliff_start, duration);
       let tranche = await get_tranche(tranche_created_event.args.tranche_id);
+
+      let initial_balance = await get_vega_balance(wallets[0]);
+      //console.log("initial_balance: " + initial_balance);
+
+      let to_issue = "100000000000000000000000";
+      let midway_issue = "100000000000000000000000";
+      let total_issue = "200000000000000000000000";
       //issue_into_tranche
-      await issue_into_tranche(wallets[0], tranche_created_event.args.tranche_id.toString(), "10000000000000000000000");
-      console.log("issued");
+      await issue_into_tranche(wallets[0], tranche_created_event.args.tranche_id.toString(), to_issue);
+      //console.log("issued");
       let initial_vested = await get_vested_for_tranche(wallets[0], tranche_created_event.args.tranche_id.toString());
-      console.log("vested: " + initial_vested);
-      console.log("tranche_id: " + tranche_created_event.args.tranche_id.toString())
+      //console.log("vested: " + web3.utils.fromWei(initial_vested) );
+      //console.log("tranche_id: " + tranche_created_event.args.tranche_id.toString())
 
 
-      for(let cycle = 0; cycle < 600; cycle++){
-        await timeout(5000);
+      for(let cycle = 0; cycle < 12; cycle++){
+        await timeout(1000);
+
         //this triggers a block to be mined
         await issue_into_tranche(wallets[3], tranche_created_event.args.tranche_id.toString(), "1");
         //should be done
         vested = await get_vested_for_tranche(wallets[0], tranche_created_event.args.tranche_id.toString());
-        console.log("vested: " + web3.utils.fromWei(vested))
+        //console.log("vested: " + web3.utils.fromWei(vested))
 
-        if(cycle % 20 === 0){
+        if(cycle % 2 === 0){
           let withdraw_result = await withdraw_from_tranche(tranche_created_event.args.tranche_id);
-          console.log("withdrawn: " + web3.utils.fromWei(withdraw_result.args.amount));
-          console.log("total remaining: " + web3.utils.fromWei(await user_total_all_tranches(wallets[0])))
+          //console.log("withdrawn: " + web3.utils.fromWei(withdraw_result.args.amount));
+          //console.log("total remaining: " + web3.utils.fromWei(await user_total_all_tranches(wallets[0])))
+        }
+
+        if(cycle === 3){
+          //console.log("issuing midway...")
+          await issue_into_tranche(wallets[0], tranche_created_event.args.tranche_id.toString(), midway_issue);
         }
       }
+      await timeout(5000);
       //this triggers a block to be mined
       await issue_into_tranche(wallets[3], tranche_created_event.args.tranche_id.toString(), "1");
       //should be done
       vested = await get_vested_for_tranche(wallets[0], tranche_created_event.args.tranche_id.toString());
-      console.log("vested: " + vested)
+      //console.log("vested: " + vested)
       let withdraw_result = await withdraw_from_tranche(tranche_created_event.args.tranche_id);
-      console.log("withdrawn: " + withdraw_result.args.amount.toString());
+      //console.log("withdrawn: " + withdraw_result.args.amount.toString());
 
+      //todo assert balances
+      let final_balance = await get_vega_balance(wallets[0]);
+      //console.log("final_balance: " + final_balance);
+      assert.equal(final_balance.toString(),total_issue, "wrong end balance" )
+    });
+
+    it("Stake tokens, fail to withdraw, remove stake", async() => {
+        let to_issue = "100000";
+        //create 2 tranches that vest immediatly
+        let cliff_start = "0";
+        let duration = "0";//5 min
+        let tranche_created_event = await create_tranche(cliff_start, duration);
+        let tranche_1_id = tranche_created_event.args.tranche_id;
+        let tranche_1 = await get_tranche(tranche_1_id);
+
+        cliff_start = "0";
+        duration = "0";
+        let tranche_2_created_event = await create_tranche(cliff_start, duration);
+        let tranche_2_id = tranche_2_created_event.args.tranche_id;
+        let tranche_2 = await get_tranche(tranche_2_id);
+
+        let initial_balance = await get_vega_balance(wallets[0]);
+
+        //issue same amt into the 2 tranches
+        await issue_into_tranche(wallets[0], tranche_1_id, to_issue);
+        await issue_into_tranche(wallets[0], tranche_2_id, to_issue);
+
+        //stake that amt
+        await stake_tokens(to_issue, "0x8ee95176cd9486ad9e5a4a3cd5c5ddc243cb6b5a54d3da26277d1905cfc4a178");
+
+        //try to withdraw from one, should work
+        let withdraw_result_1 = await withdraw_from_tranche(tranche_1_id);
+
+        //try to withdraw from other, should fail
+        try {
+          await withdraw_from_tranche(tranche_2_id);
+          assert.equal(true, false, "withdrawal worked, shouldn't have");
+        } catch(e) {}
+
+
+        //remove stake
+        await remove_stake(to_issue);
+
+        //try to withdraw from other, should work
+        let withdraw_result_2 = await withdraw_from_tranche(tranche_2_id);
+
+        let balance = await get_vega_balance(wallets[0]);
+        
+        assert.equal(balance.sub(initial_balance).toString(), "200000", "staking failed");
 
     });
+
 
 });
 
