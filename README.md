@@ -1,4 +1,6 @@
-# Vega Token
+# Vega Token V2
+
+This will replace [the previous Vega Token](https://github.com/vegaprotocol/vega_token)
 
 # Audit
 Pending. This repository will be updated when the audit is complete.
