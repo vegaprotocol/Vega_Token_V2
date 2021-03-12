@@ -22,7 +22,6 @@
  const infuraKey = "656b87367ae14200b5f5b896e6daf38d";
 
 const fs = require('fs');
-const mnemonic = fs.readFileSync(".secret").toString().trim();
 module.exports = {
   /**
    * Networks define how you connect to your ethereum client and let you set the

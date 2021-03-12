@@ -1,0 +1,38 @@
+{
+  "name": "vegatokenv2",
+  "author": "danny@vega.xyz",
+  "version": "1.0.0",
+  "private": true,
+  "license": "MIT",
+  "description": "Smart contracts for Vega Protocol",
+  "main": "truffle test",
+  "directories": {
+    "doc": "docs",
+    "test": "test"
+  },
+  "scripts": {
+    "server": "ganache-cli -m 'cherry manage trip absorb logic half number test shed logic purpose rifle'",
+    "test": "truffle test",
+    "test:run": "start-server-and-test server test test",
+    "test:local": "npm run test:run",
+    "test:ci": "npm run test:run"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vegaprotocol/Vega_Token_V2.git"
+  },
+  "bugs": {
+    "url": "https://github.com/vegaprotocol/Vega_Token_V2/issues"
+  },
+  "homepage": "https://github.com/vegaprotocol/Vega_Token_V2#readme",
+  "dependencies": {
+    "ethereumjs-abi": "^0.6.8"
+  },
+  "devDependencies": {
+    "@truffle/hdwallet-provider": "^1.2.2",
+    "fs-extra": "^9.1.0",
+    "ganache-cli": "^6.12.2",
+    "start-server-and-test": "^1.12.0",
+    "truffle": "^5.2.3"
+  }
+}
