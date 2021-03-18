@@ -11,14 +11,13 @@ contract ERC20_Vesting {
   mapping(address=> user_stat) user_stats;
 
   uint256 public total_locked;
-  address constant public v1_address = 0xD249B16f61cB9489Fe0Bb046119A48025545b58a;
+  address public v1_address; // mainnet = 0xD249B16f61cB9489Fe0Bb046119A48025545b58a;
   address public v2_address;
   uint256 constant accuracy_scale = 100000000000;
 
-  constructor(address token_v2_address) {
-    /// @notice assuming 3m locked, this is going to be terrible to test
-    total_locked = 3000000;
-    //total_locked = IERC20(v1_address).totalSupply() - IERC20(v1_address).balanceOf(v1_address);
+  constructor(address token_v1_address, address token_v2_address) {
+    v1_address = token_v1_address;
+    total_locked = IERC20(token_v1_address).totalSupply() - IERC20(token_v1_address).balanceOf(token_v1_address);
     v2_address = token_v2_address;
     controller = msg.sender;
     emit Controller_Set(controller);
@@ -116,7 +115,7 @@ contract ERC20_Vesting {
   function get_tranche_balance(address user, uint8 tranche_id) public view returns(uint256) {
     if(tranche_id == 0 && !v1_migrated[user]){
       //todo refer to token V1 if user
-      return (user_stats[user].tranche_balances[tranche_id].total_deposited - user_stats[user].tranche_balances[tranche_id].total_claimed) + v1_bal(user);
+      return v1_bal(user);
     } else {
       return user_stats[user].tranche_balances[tranche_id].total_deposited - user_stats[user].tranche_balances[tranche_id].total_claimed;
     }
@@ -142,15 +141,12 @@ contract ERC20_Vesting {
     }
   }
 
-  function v1_bal(address /*user*/) internal view returns(uint256) {
-    return 0;
-    //TODO UNDO THIS TO ENABLE v1 migration:
-    /*
+  function v1_bal(address user) internal view returns(uint256) {
     if(!v1_migrated[user]){
       return IERC20(v1_address).balanceOf(user);
     } else {
       return 0;
-    }*/
+    }
   }
   function user_total_all_tranches(address user) public view returns(uint256){
     return user_stats[user].total_in_all_tranches + v1_bal(user);
