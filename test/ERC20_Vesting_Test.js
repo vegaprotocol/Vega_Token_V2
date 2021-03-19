@@ -48,10 +48,13 @@ let create_tranche = async (cliff_start, duration) =>{
   return result;
 }
 
-let issue_into_tranche = async (user, tranche_id, amount) =>{
+let issue_into_tranche = async (user, tranche_id, amount, from) =>{
+  if(from === undefined){
+    from = wallets[0];
+  }
   //issue_into_tranche(address user, uint8 tranche_id, uint256 amount) public controller_or_issuer {
   let erc20_vesting_instance = await ERC20_Vesting.deployed();
-  let receipt = await erc20_vesting_instance.issue_into_tranche(user, tranche_id, amount);
+  let receipt = await erc20_vesting_instance.issue_into_tranche(user, tranche_id, amount, {from:from});
   let result = receipt.logs.find(l => l.event === "Tranche_Balance_Added");
   if(result === undefined){
     throw "Tranche_Balance_Added event was not emitted";
@@ -112,11 +115,21 @@ let permit_issuer = async (issuer, amount) =>{
   // permit_issuer(address issuer, uint256 amount) public only_controller
   let erc20_vesting_instance = await ERC20_Vesting.deployed();
   let receipt = await erc20_vesting_instance.permit_issuer(issuer, amount);
+  let result = receipt.logs.find(l => l.event === "Issuer_Permitted");
+  if(result === undefined){
+    throw "Issuer_Permitted event was not emitted";
+  }
+  return result;
 }
 let revoke_issuer = async (issuer) =>{
   // revoke_issuer(address issuer) public only_controller
   let erc20_vesting_instance = await ERC20_Vesting.deployed();
   let receipt = await erc20_vesting_instance.revoke_issuer(issuer);
+  let result = receipt.logs.find(l => l.event === "Issuer_Revoked");
+  if(result === undefined){
+    throw "Issuer_Revoked event was not emitted";
+  }
+  return result;
 }
 let set_controller = async (new_controller) =>{
   // set_controller(address new_controller) public only_controller
@@ -341,5 +354,43 @@ contract("ERC20_Vesting",  (accounts) => {
         let wallet_0_final_balance = await get_vega_balance(wallets[0]);
         assert.equal(wallet_0_final_balance.sub(wallet_0_initial_balance).toString(), v1_expected_balance, "final balance is incorrect")
 
+    });
+
+    it("permitted issuer", async() => {
+      let to_issue = "1000000000000000000000000";
+
+      let tranche_created_event = await create_tranche("0", "0");
+      let tranche_id = tranche_created_event.args.tranche_id;
+
+      //fail to issue
+      try {
+        await issue_into_tranche(wallets[3], tranche_id, to_issue, wallets[1]);
+        assert.equal(true, false, "allowed issue, shouldn't have");
+      } catch(ex){}
+
+      //permit
+      await permit_issuer(wallets[1], to_issue);
+
+      //issue entire permission
+      await issue_into_tranche(wallets[3], tranche_id, to_issue, wallets[1]);
+
+      // fail to issue
+      try {
+        await issue_into_tranche(wallets[3], tranche_id, to_issue, wallets[1]);
+        assert.equal(true, false, "allowed issue, shouldn't have");
+      } catch(ex){}
+
+
+      //permit
+      await permit_issuer(wallets[1], to_issue);
+
+      //revoke
+      await revoke_issuer(wallets[1]);
+
+      //fail to issue
+      try {
+        await issue_into_tranche(wallets[3], tranche_id, to_issue, wallets[1]);
+        assert.equal(true, false, "allowed issue, shouldn't have");
+      } catch(ex){}
     });
 });

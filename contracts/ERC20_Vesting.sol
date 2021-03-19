@@ -184,7 +184,7 @@ contract ERC20_Vesting {
     emit Issuer_Permitted(issuer, amount);
   }
   function revoke_issuer(address issuer) public only_controller {
-    require(permitted_issuance[issuer] == 0, "issuer already revoked");
+    require(permitted_issuance[issuer] != 0, "issuer already revoked");
     permitted_issuance[issuer] = 0;
     emit Issuer_Revoked(issuer);
   }
