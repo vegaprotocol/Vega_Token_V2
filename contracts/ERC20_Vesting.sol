@@ -8,7 +8,6 @@ import "./IERC20.sol";
 /// @notice This contract manages the vesting of the Vega V2 ERC20 token
 contract ERC20_Vesting {
 
-  event Lien_Applied(address indexed user, uint256 amount);
   event Tokens_Withdrawn(address indexed user, uint8 tranche_id, uint256 amount);
   event Tranche_Created(uint8 indexed tranche_id, uint256 cliff_start, uint256 duration);
   event Tranche_Balance_Added(address indexed user, uint8 indexed tranche_id, uint256 amount);
@@ -38,8 +37,8 @@ contract ERC20_Vesting {
   uint256 constant public accuracy_scale = 100000000000;
 
   /****ADDRESS MIGRATION**/
-  //new address => old address
-  mapping(address => address) address_migration;
+  /// @notice new address => old address
+  mapping(address => address) public address_migration;
   /*****/
 
   /// @param token_v1_address Vega's already deployed v1 ERC20 token address
@@ -196,7 +195,7 @@ contract ERC20_Vesting {
   function v1_bal(address user) internal view returns(uint256) {
     if(!v1_migrated[user]){
       if(address_migration[user] != address(0)){
-        return IERC20(v1_address).balanceOf(user) + IERC20(v1_address).balanceOf(user);
+        return IERC20(v1_address).balanceOf(user) + IERC20(v1_address).balanceOf(address_migration[user]);
       } else {
         return IERC20(v1_address).balanceOf(user);
       }

@@ -156,7 +156,6 @@ function timeout(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-/////////////
 
 
 contract("ERC20_Vesting",  (accounts) => {
@@ -392,5 +391,37 @@ contract("ERC20_Vesting",  (accounts) => {
         await issue_into_tranche(wallets[3], tranche_id, to_issue, wallets[1]);
         assert.equal(true, false, "allowed issue, shouldn't have");
       } catch(ex){}
+    });
+
+    it("v1->v2 update mapping", async () => {
+      /////////////
+      //issue to 0xe9abed28fd7a0cab7031a4eefe8d8cc42f2bf837
+      //mapped to 0x32321e10a8a0e95f261591520c134d4a6d1743c1 (addresses[9]);
+      //TODO test mapping
+      let erc20_vesting_instance = await ERC20_Vesting.deployed();
+      let test_token_instance = await Vega_1_TEST_STANDIN_DO_NOT_DEPLOY.deployed();
+
+      let tranche_zero_address9_before = await erc20_vesting_instance.get_tranche_balance(accounts[9], 0);
+      let tranche_zero_mapped_before = await erc20_vesting_instance.get_tranche_balance("0xe9abed28fd7a0cab7031a4eefe8d8cc42f2bf837", 0);
+      assert.equal(tranche_zero_address9_before.toString(), "0", "tranche_zero_address9_before bad");
+      assert.equal(tranche_zero_mapped_before.toString(), "0", "tranche_zero_mapped_before bad");
+
+      //issue test token to 0xe9abed28fd7a0cab7031a4eefe8d8cc42f2bf837
+      // 1000
+      await test_token_instance.transfer("0xe9abed28fd7a0cab7031a4eefe8d8cc42f2bf837", "1000000000000000000000");
+
+      let tranche_zero_address9_after = await erc20_vesting_instance.get_tranche_balance(accounts[9], 0);
+      let tranche_zero_mapped_after = await erc20_vesting_instance.get_tranche_balance("0xe9abed28fd7a0cab7031a4eefe8d8cc42f2bf837", 0);
+
+      assert.equal(tranche_zero_address9_after.toString(), "1000000000000000000000", "tranche_zero_address9_after bad");
+      assert.equal(tranche_zero_mapped_after.toString(), "0", "tranche_zero_mapped_after bad");
+
+      //make new open tranche
+      let tranche_created_event = await create_tranche("0", "0");
+      let tranche_id = tranche_created_event.args.tranche_id;
+
+      //issue into tranche for addresses[9]
+      await issue_into_tranche(wallets[9], tranche_id, "1000000000000000000000", accounts[0]);
+
     });
 });

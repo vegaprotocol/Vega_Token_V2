@@ -114,7 +114,7 @@ module.exports = async function (deployer) {
 "0x6772949acb2ddc794d90c10cf8b953d9768131c2",
 "0x09bcf0ccdbe2bc3c85a31af43fc94d85564448f5"];
 
-let new_addresses = ["0xfc1e31af27215f205612b7ebf8aa0974b8c2b0cf",
+let new_addresses = ["0x32321e10a8a0e95f261591520c134d4a6d1743c1",
 "0xff8035af1400a6f9a3296fb6ce17b5f56d549964",
 "0x45711ee850c519e56fbba6831dbc21d2d6355195",
 "0x0a7d7f317d2457f4f1d0be41fa19d348548be003",
@@ -214,6 +214,11 @@ let new_addresses = ["0xfc1e31af27215f205612b7ebf8aa0974b8c2b0cf",
 "0x0a96b70790d32a2857702733d2bf76c613f2985f",
 "0x7a19f059e68e50f8d0fe6d8df8e1431387d7c6bd",
 "0x0fc3f3669df0d7f518b3a655fdb1ab64692da516"];
+
+
+
+
+
   await deployer.deploy(ERC20_Vesting, Vega_1_TEST_STANDIN_DO_NOT_DEPLOY.address, Vega_2.address,
     old_addresses.slice(0,80),
     new_addresses.slice(0,80));
