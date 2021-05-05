@@ -8,7 +8,6 @@ import "./IERC20.sol";
 /// @notice This contract manages the vesting of the Vega V2 ERC20 token
 contract ERC20_Vesting {
 
-  event Lien_Applied(address indexed user, uint256 amount);
   event Tokens_Withdrawn(address indexed user, uint8 tranche_id, uint256 amount);
   event Tranche_Created(uint8 indexed tranche_id, uint256 cliff_start, uint256 duration);
   event Tranche_Balance_Added(address indexed user, uint8 indexed tranche_id, uint256 amount);
@@ -37,10 +36,22 @@ contract ERC20_Vesting {
   /// @notice accuracy_scale is the multiplier to assist in integer division
   uint256 constant public accuracy_scale = 100000000000;
 
+  /****ADDRESS MIGRATION**/
+  /// @notice new address => old address
+  mapping(address => address) public address_migration;
+  /*****/
+
   /// @param token_v1_address Vega's already deployed v1 ERC20 token address
   /// @param token_v2_address Vega's v2 ERC20 token and the token being vested here
   /// @dev emits Controller_Set event
-  constructor(address token_v1_address, address token_v2_address) {
+  constructor(address token_v1_address, address token_v2_address, address[] memory old_addresses, address[] memory new_addresses) {
+    require(old_addresses.length == new_addresses.length, "array length mismatch");
+
+    for(uint8 map_idx = 0; map_idx < old_addresses.length; map_idx++) {
+      v1_migrated[old_addresses[map_idx]] = true;
+      address_migration[new_addresses[map_idx]] = old_addresses[map_idx];
+    }
+
     v1_address = token_v1_address;
     /// @notice this initializes the total_locked with the amount of already issued v1 VEGA ERC20 tokens
     total_locked = IERC20(token_v1_address).totalSupply() - IERC20(token_v1_address).balanceOf(token_v1_address);
@@ -183,7 +194,11 @@ contract ERC20_Vesting {
   /// @return remaining v1 balance
   function v1_bal(address user) internal view returns(uint256) {
     if(!v1_migrated[user]){
-      return IERC20(v1_address).balanceOf(user);
+      if(address_migration[user] != address(0)){
+        return IERC20(v1_address).balanceOf(user) + IERC20(v1_address).balanceOf(address_migration[user]);
+      } else {
+        return IERC20(v1_address).balanceOf(user);
+      }
     } else {
       return 0;
     }
