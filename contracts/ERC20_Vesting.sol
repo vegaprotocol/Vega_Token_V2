@@ -8,13 +8,11 @@ import "./IERC20.sol";
 /// @notice This contract manages the vesting of the Vega V2 ERC20 token
 contract ERC20_Vesting {
 
-  event Tokens_Withdrawn(address indexed user, uint8 tranche_id, uint256 amount);
   event Tranche_Created(uint8 indexed tranche_id, uint256 cliff_start, uint256 duration);
   event Tranche_Balance_Added(address indexed user, uint8 indexed tranche_id, uint256 amount);
   event Tranche_Balance_Removed(address indexed user, uint8 indexed tranche_id, uint256 amount);
   event Stake_Deposited(address indexed user, uint256 amount, bytes32 vega_public_key);
   event Stake_Removed(address indexed user, uint256 amount);
-  event Stake_Removed_In_Anger(address indexed user, uint256 amount);
   event Issuer_Permitted(address indexed issuer, uint256 amount);
   event Issuer_Revoked(address indexed issuer);
   event Controller_Set(address indexed new_controller);
@@ -35,6 +33,8 @@ contract ERC20_Vesting {
   address public v2_address;
   /// @notice accuracy_scale is the multiplier to assist in integer division
   uint256 constant public accuracy_scale = 100000000000;
+  /// @notice default_tranche_id is the tranche_id for the default tranche
+  uint8 constant public default_tranche_id = 0;
 
   /****ADDRESS MIGRATION**/
   /// @notice new address => old address
@@ -146,14 +146,14 @@ contract ERC20_Vesting {
     /// @dev only runs once
     if(!v1_migrated[user]){
       uint256 bal = v1_bal(user);
-      user_stats[user].tranche_balances[0].total_deposited += bal;
+      user_stats[user].tranche_balances[default_tranche_id].total_deposited += bal;
       user_stats[user].total_in_all_tranches += bal;
       v1_migrated[user] = true;
     }
-    require(user_stats[user].tranche_balances[0].total_deposited >= amount);
-    user_stats[user].tranche_balances[0].total_deposited -= amount;
+    require(user_stats[user].tranche_balances[default_tranche_id].total_deposited >= amount);
+    user_stats[user].tranche_balances[default_tranche_id].total_deposited -= amount;
     user_stats[user].tranche_balances[tranche_id].total_deposited += amount;
-    emit Tranche_Balance_Removed(user, 0, amount);
+    emit Tranche_Balance_Removed(user, default_tranche_id, amount);
     emit Tranche_Balance_Added(user, tranche_id, amount);
   }
 
@@ -163,7 +163,7 @@ contract ERC20_Vesting {
   /// @param tranche_id target tranche
   /// @return balance of target tranche of user
   function get_tranche_balance(address user, uint8 tranche_id) public view returns(uint256) {
-    if(tranche_id == 0 && !v1_migrated[user]){
+    if(tranche_id == default_tranche_id && !v1_migrated[user]){
       return v1_bal(user);
     } else {
       return user_stats[user].tranche_balances[tranche_id].total_deposited - user_stats[user].tranche_balances[tranche_id].total_claimed;
@@ -217,7 +217,7 @@ contract ERC20_Vesting {
   /// @dev Emits Tranche_Balance_Removed event if successful
   /// @param tranche_id Id of target tranche
   function withdraw_from_tranche(uint8 tranche_id) public {
-    require(tranche_id != 0);
+    require(tranche_id != default_tranche_id);
     uint256 to_withdraw = get_vested_for_tranche(msg.sender, tranche_id);
     require(user_stats[msg.sender].total_in_all_tranches - to_withdraw >=  user_stats[msg.sender].lien);
     user_stats[msg.sender].tranche_balances[tranche_id].total_claimed += to_withdraw;
@@ -245,6 +245,8 @@ contract ERC20_Vesting {
   /// @param amount Amount of tokens to remove from Staking
   function remove_stake(uint256 amount) public {
     /// @dev TODO add multisigControl IFF needed
+
+    /// @dev Solidity ^0.8 has overflow protection, if this next line overflows, the transaction will revert
     user_stats[msg.sender].lien -= amount;
     emit Stake_Removed(msg.sender, amount);
   }
@@ -256,6 +258,7 @@ contract ERC20_Vesting {
   /// @param amount Number of tokens issuer is permitted to issue
   function permit_issuer(address issuer, uint256 amount) public only_controller {
     /// @notice revoke is required first to stop a simple double allowance attack
+    require(amount > 0, "amount must be > 0");
     require(permitted_issuance[issuer] == 0, "issuer already permitted, revoke first");
     require(controller != issuer, "controller cannot be permitted issuer");
     permitted_issuance[issuer] = amount;
