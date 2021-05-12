@@ -280,7 +280,10 @@ contract ERC20_Vesting {
   /// @param new_controller Address of the new controller
   function set_controller(address new_controller) public only_controller {
     controller = new_controller;
-    permitted_issuance[new_controller] = 0;
+    if(permitted_issuance[new_controller] > 0){
+      permitted_issuance[new_controller] = 0;
+      emit Issuer_Revoked(new_controller);
+    }
     emit Controller_Set(new_controller);
   }
 
