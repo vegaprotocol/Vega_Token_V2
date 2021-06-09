@@ -2,17 +2,16 @@
 pragma solidity 0.8.1;
 
 import "./IERC20.sol";
+import "./IStake.sol";
 
 /// @title ERC20 Vesting
 /// @author Vega Protocol
 /// @notice This contract manages the vesting of the Vega V2 ERC20 token
-contract ERC20_Vesting {
+contract ERC20_Vesting is IStake {
 
   event Tranche_Created(uint8 indexed tranche_id, uint256 cliff_start, uint256 duration);
   event Tranche_Balance_Added(address indexed user, uint8 indexed tranche_id, uint256 amount);
   event Tranche_Balance_Removed(address indexed user, uint8 indexed tranche_id, uint256 amount);
-  event Stake_Deposited(address indexed user, uint256 amount, bytes32 indexed vega_public_key);
-  event Stake_Removed(address indexed user, uint256 amount, bytes32 indexed vega_public_key);
   event Issuer_Permitted(address indexed issuer, uint256 amount);
   event Issuer_Revoked(address indexed issuer);
   event Controller_Set(address indexed new_controller);
