@@ -236,6 +236,7 @@ contract ERC20_Vesting {
     require(user_total_all_tranches(msg.sender) >= user_stats[msg.sender].lien + amount);
     //user applies this to themselves which only multisig control can remove
     user_stats[msg.sender].lien += amount;
+    stake[msg.sender][vega_public_key] -= amount;
     emit Stake_Deposited(msg.sender, amount, vega_public_key);
   }
 
@@ -243,12 +244,13 @@ contract ERC20_Vesting {
   /// @notice clears "amount" of lien
   /// @dev emits Stake_Removed event if successful
   /// @param amount Amount of tokens to remove from Staking
-  function remove_stake(uint256 amount) public {
+  function remove_stake(uint256 amount, bytes32 vega_public_key) public {
     /// @dev TODO add multisigControl IFF needed
 
     /// @dev Solidity ^0.8 has overflow protection, if this next line overflows, the transaction will revert
+    stake[msg.sender][vega_public_key] -= amount;
     user_stats[msg.sender].lien -= amount;
-    emit Stake_Removed(msg.sender, amount);
+    emit Stake_Removed(msg.sender, amount, vega_public_key);
   }
 
   /// @notice This function allows the controller to permit the given address to issue the given Amount
