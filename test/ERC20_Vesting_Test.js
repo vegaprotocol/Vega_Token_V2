@@ -105,11 +105,21 @@ let stake_tokens = async (amount, vega_public_key) =>{
   //stake_tokens(uint256 amount, bytes32 vega_public_key) public
   let erc20_vesting_instance = await ERC20_Vesting.deployed();
   let receipt = await erc20_vesting_instance.stake_tokens(amount, vega_public_key);
+  let result = receipt.logs.find(l => l.event === "Stake_Deposited");
+  if(result === undefined){
+    throw "Stake_Deposited event was not emitted";
+  }
+  return result;
 }
-let remove_stake = async (amount) =>{
+let remove_stake = async (amount, vega_public_key) =>{
   // remove_stake(uint256 amount) public {
   let erc20_vesting_instance = await ERC20_Vesting.deployed();
-  let receipt = await erc20_vesting_instance.remove_stake(amount);
+  let receipt = await erc20_vesting_instance.remove_stake(amount, vega_public_key);
+  let result = receipt.logs.find(l => l.event === "Stake_Removed");
+  if(result === undefined){
+    throw "Stake_Removed event was not emitted";
+  }
+  return result;
 }
 let permit_issuer = async (issuer, amount) =>{
   // permit_issuer(address issuer, uint256 amount) public only_controller
@@ -157,6 +167,7 @@ function timeout(ms) {
 }
 
 
+let vega_public_key_1 = "0x8ee95176cd9486ad9e5a4a3cd5c5ddc243cb6b5a54d3da26277d1905cfc4a178";
 
 contract("ERC20_Vesting",  (accounts) => {
 
@@ -296,7 +307,7 @@ contract("ERC20_Vesting",  (accounts) => {
         await issue_into_tranche(wallets[0], tranche_2_id, to_issue);
 
         //stake that amt
-        await stake_tokens(to_issue, "0x8ee95176cd9486ad9e5a4a3cd5c5ddc243cb6b5a54d3da26277d1905cfc4a178");
+        await stake_tokens(to_issue, vega_public_key_1);
 
         //try to withdraw from one, should work
         let withdraw_result_1 = await withdraw_from_tranche(tranche_1_id);
@@ -309,7 +320,7 @@ contract("ERC20_Vesting",  (accounts) => {
 
 
         //remove stake
-        await remove_stake(to_issue);
+        await remove_stake(to_issue, vega_public_key_1);
 
         //try to withdraw from other, should work
         let withdraw_result_2 = await withdraw_from_tranche(tranche_2_id);
