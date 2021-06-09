@@ -11,8 +11,8 @@ contract ERC20_Vesting {
   event Tranche_Created(uint8 indexed tranche_id, uint256 cliff_start, uint256 duration);
   event Tranche_Balance_Added(address indexed user, uint8 indexed tranche_id, uint256 amount);
   event Tranche_Balance_Removed(address indexed user, uint8 indexed tranche_id, uint256 amount);
-  event Stake_Deposited(address indexed user, uint256 amount, bytes32 vega_public_key);
-  event Stake_Removed(address indexed user, uint256 amount);
+  event Stake_Deposited(address indexed user, uint256 amount, bytes32 indexed vega_public_key);
+  event Stake_Removed(address indexed user, uint256 amount, bytes32 indexed vega_public_key);
   event Issuer_Permitted(address indexed issuer, uint256 amount);
   event Issuer_Revoked(address indexed issuer);
   event Controller_Set(address indexed new_controller);
@@ -25,6 +25,7 @@ contract ERC20_Vesting {
   mapping(address => bool) public v1_migrated;
   /// @notice user => user_stat struct
   mapping(address=> user_stat) public user_stats;
+
   /// @notice total_locked is the total amount of tokens "on" this contract that are locked into a tranche
   uint256 public total_locked;
   /// @notice v1_address is the address for Vega's v1 ERC20 token that has already been deployed
@@ -76,6 +77,7 @@ contract ERC20_Vesting {
     uint256 total_in_all_tranches;
     uint256 lien;
     mapping (uint8 => tranche_balance) tranche_balances;
+    mapping(bytes32 => uint256) stake;
   }
 
   /// @notice tranche is a struct that hold the details needed for calculating individual tranche vesting
@@ -236,7 +238,7 @@ contract ERC20_Vesting {
     require(user_total_all_tranches(msg.sender) >= user_stats[msg.sender].lien + amount);
     //user applies this to themselves which only multisig control can remove
     user_stats[msg.sender].lien += amount;
-    stake[msg.sender][vega_public_key] -= amount;
+    user_stats[msg.sender].stake[vega_public_key] += amount;
     emit Stake_Deposited(msg.sender, amount, vega_public_key);
   }
 
@@ -248,7 +250,7 @@ contract ERC20_Vesting {
     /// @dev TODO add multisigControl IFF needed
 
     /// @dev Solidity ^0.8 has overflow protection, if this next line overflows, the transaction will revert
-    stake[msg.sender][vega_public_key] -= amount;
+    user_stats[msg.sender].stake[vega_public_key] -= amount;
     user_stats[msg.sender].lien -= amount;
     emit Stake_Removed(msg.sender, amount, vega_public_key);
   }
