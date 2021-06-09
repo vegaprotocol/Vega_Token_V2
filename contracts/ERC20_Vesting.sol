@@ -223,7 +223,9 @@ contract ERC20_Vesting {
     uint256 to_withdraw = get_vested_for_tranche(msg.sender, tranche_id);
     require(user_stats[msg.sender].total_in_all_tranches - to_withdraw >=  user_stats[msg.sender].lien);
     user_stats[msg.sender].tranche_balances[tranche_id].total_claimed += to_withdraw;
+    /// @dev Solidity ^0.8 has overflow protection, if this next line overflows, the transaction will revert
     user_stats[msg.sender].total_in_all_tranches -= to_withdraw;
+    /// @dev Solidity ^0.8 has overflow protection, if this next line overflows, the transaction will revert
     total_locked -= to_withdraw;
     require(IERC20(v2_address).transfer(msg.sender, to_withdraw));
     emit Tranche_Balance_Removed(msg.sender, tranche_id, to_withdraw);
@@ -236,7 +238,7 @@ contract ERC20_Vesting {
   function stake_tokens(uint256 amount, bytes32 vega_public_key) public {
     require(user_stats[msg.sender].lien + amount > user_stats[msg.sender].lien);
     require(user_total_all_tranches(msg.sender) >= user_stats[msg.sender].lien + amount);
-    //user applies this to themselves which only multisig control can remove
+    /// @dev Solidity ^0.8 has overflow protection, if this next line overflows, the transaction will revert
     user_stats[msg.sender].lien += amount;
     user_stats[msg.sender].stake[vega_public_key] += amount;
     emit Stake_Deposited(msg.sender, amount, vega_public_key);
@@ -246,11 +248,11 @@ contract ERC20_Vesting {
   /// @notice clears "amount" of lien
   /// @dev emits Stake_Removed event if successful
   /// @param amount Amount of tokens to remove from Staking
+  /// @param vega_public_key Target Vega public key from which to remove stake lock
   function remove_stake(uint256 amount, bytes32 vega_public_key) public {
-    /// @dev TODO add multisigControl IFF needed
-
     /// @dev Solidity ^0.8 has overflow protection, if this next line overflows, the transaction will revert
     user_stats[msg.sender].stake[vega_public_key] -= amount;
+    /// @dev Solidity ^0.8 has overflow protection, if this next line overflows, the transaction will revert
     user_stats[msg.sender].lien -= amount;
     emit Stake_Removed(msg.sender, amount, vega_public_key);
   }
