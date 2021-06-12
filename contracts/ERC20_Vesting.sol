@@ -230,6 +230,27 @@ contract ERC20_Vesting is IStake {
     emit Tranche_Balance_Removed(msg.sender, tranche_id, to_withdraw);
   }
 
+  /// @notice This function allows the controller to assist the target user with their withdrawal. All the currently available vested tokens FOR THE TARGET will be withdrawn TO THE TARGET ADDRESS WALLET
+  /// @notice This function exists in case of users using custodial wallets that are incapable of running "withdraw_from_tranche" but are still ERC20 compatable
+  /// @notice ONLY the controller can run this function and it will only be ran at the target users request.
+  /// @notice This will not allow a user's total tranch balance to go below the user's lien amount
+  /// @dev Emits Tranche_Balance_Removed event if successful
+  /// @param tranche_id Id of target tranche
+  /// @param target Address with balance that needs the assist
+  function assisted_withdraw_from_tranche(uint8 tranche_id, address target) public only_controller {
+    require(tranche_id != default_tranche_id);
+    uint256 to_withdraw = get_vested_for_tranche(target, tranche_id);
+    require(user_stats[target].total_in_all_tranches - to_withdraw >=  user_stats[target].lien);
+    user_stats[target].tranche_balances[tranche_id].total_claimed += to_withdraw;
+    /// @dev Solidity ^0.8 has overflow protection, if this next line overflows, the transaction will revert
+    user_stats[target].total_in_all_tranches -= to_withdraw;
+    /// @dev Solidity ^0.8 has overflow protection, if this next line overflows, the transaction will revert
+    total_locked -= to_withdraw;
+    require(IERC20(v2_address).transfer(target, to_withdraw));
+    emit Tranche_Balance_Removed(target, tranche_id, to_withdraw);
+  }
+
+
   /// @notice This function will put a lien on the user who runs this function
   /// @dev Emits Stake_Deposited event if successful
   /// @param amount Amount of tokens to stake
