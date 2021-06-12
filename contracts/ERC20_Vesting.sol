@@ -232,8 +232,9 @@ contract ERC20_Vesting is IStake {
 
   /// @notice This function allows the controller to assist the target user with their withdrawal. All the currently available vested tokens FOR THE TARGET will be withdrawn TO THE TARGET ADDRESS WALLET
   /// @notice This function exists in case of users using custodial wallets that are incapable of running "withdraw_from_tranche" but are still ERC20 compatable
-  /// @notice ONLY the controller can run this function and it will only be ran at the target users request.
+  /// @notice ONLY the controller can run this function and it will only be ran at the target users request
   /// @notice This will not allow a user's total tranch balance to go below the user's lien amount
+  /// @notice This function does not allow the controller to access any funds from other addresses or change which address is in control of any funds
   /// @dev Emits Tranche_Balance_Removed event if successful
   /// @param tranche_id Id of target tranche
   /// @param target Address with balance that needs the assist

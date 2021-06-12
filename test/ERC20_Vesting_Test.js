@@ -177,6 +177,7 @@ let get_vega_balance = async (user) => {
 
 function timeout(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
+
 }
 
 
@@ -304,57 +305,33 @@ contract("ERC20_Vesting",  (accounts) => {
       let cliff_start = Math.floor(Date.now()/1000);
 
       //console.log(cliff_start)
-      let duration = "10";
+      let duration = "3";
       let tranche_created_event = await create_tranche(cliff_start, duration);
       let tranche = await get_tranche(tranche_created_event.args.tranche_id);
 
-      let initial_balance = await get_vega_balance(wallets[0]);
+      let initial_balance = await get_vega_balance(wallets[6]);
       //console.log("initial_balance: " + initial_balance);
 
       let to_issue = "100000000000000000000000";
-      let midway_issue = "100000000000000000000000";
-      let total_issue = "400000000000000000000000"; //2 from prev test haha
+
       //issue_into_tranche
-      await issue_into_tranche(wallets[0], tranche_created_event.args.tranche_id.toString(), to_issue);
+      await issue_into_tranche(wallets[6], tranche_created_event.args.tranche_id.toString(), to_issue);
       //console.log("issued");
-      let initial_vested = await get_vested_for_tranche(wallets[0], tranche_created_event.args.tranche_id.toString());
+      let initial_vested = await get_vested_for_tranche(wallets[6], tranche_created_event.args.tranche_id.toString());
       //console.log("vested: " + web3.utils.fromWei(initial_vested) );
       //console.log("tranche_id: " + tranche_created_event.args.tranche_id.toString())
+      await timeout(4000);
 
-
-      for(let cycle = 0; cycle < 12; cycle++){
-        await timeout(1000);
-
-        //this triggers a block to be mined
-        await issue_into_tranche(wallets[3], tranche_created_event.args.tranche_id.toString(), "1");
-        //should be done
-        vested = await get_vested_for_tranche(wallets[0], tranche_created_event.args.tranche_id.toString());
-        //console.log("vested: " + web3.utils.fromWei(vested))
-
-        if(cycle % 2 === 0){
-          let withdraw_result = await assisted_withdraw_from_tranche(tranche_created_event.args.tranche_id, wallets[0]);
-          //console.log("withdrawn: " + web3.utils.fromWei(withdraw_result.args.amount));
-          //console.log("total remaining: " + web3.utils.fromWei(await user_total_all_tranches(wallets[0])))
-        }
-
-        if(cycle === 3){
-          //console.log("issuing midway...")
-          await issue_into_tranche(wallets[0], tranche_created_event.args.tranche_id.toString(), midway_issue);
-        }
-      }
-      await timeout(5000);
-      //this triggers a block to be mined
-      await issue_into_tranche(wallets[3], tranche_created_event.args.tranche_id.toString(), "1");
       //should be done
-      vested = await get_vested_for_tranche(wallets[0], tranche_created_event.args.tranche_id.toString());
+      vested = await get_vested_for_tranche(wallets[6], tranche_created_event.args.tranche_id.toString());
       //console.log("vested: " + vested)
-      let withdraw_result = await assisted_withdraw_from_tranche(tranche_created_event.args.tranche_id, wallets[0]);
+      let withdraw_result = await assisted_withdraw_from_tranche(tranche_created_event.args.tranche_id, wallets[6]);
       //console.log("withdrawn: " + withdraw_result.args.amount.toString());
 
       //todo assert balances
-      let final_balance = await get_vega_balance(wallets[0]);
+      let final_balance = await get_vega_balance(wallets[6]);
       //console.log("final_balance: " + final_balance);
-      assert.equal(final_balance.toString(),total_issue, "wrong end balance" )
+      assert.equal(final_balance.toString(), initial_balance.add(web3.utils.toBN(to_issue)).toString(), "wrong end balance" )
     });
 
 
