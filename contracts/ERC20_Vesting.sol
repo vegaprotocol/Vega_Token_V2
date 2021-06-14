@@ -314,6 +314,20 @@ contract ERC20_Vesting is IStake {
     emit Controller_Set(new_controller);
   }
 
+  /// @dev This is IStake.staking_token
+  /// @return the address of the token that is able to be staked
+  function staking_token() external override view returns (address) {
+    return v2_address;
+  }
+
+  /// @dev This is IStake.stake_balance
+  /// @param target Target address to check
+  /// @param vega_public_key Target vega public key to check
+  /// @return the number of tokens staked for that address->vega_public_key pair
+  function stake_balance(address target, bytes32 vega_public_key) external override view returns (uint256) {
+    return user_stats[target].stake[vega_public_key];
+  }
+
   /// @notice this modifier requires that msg.sender is the controller of this contract
   modifier only_controller {
          require( msg.sender == controller, "not controller" );

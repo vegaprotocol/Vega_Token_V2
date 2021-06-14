@@ -323,7 +323,7 @@ contract("ERC20_Vesting",  (accounts) => {
       await timeout(4000);
 
       //should be done
-      vested = await get_vested_for_tranche(wallets[6], tranche_created_event.args.tranche_id.toString());
+      let vested = await get_vested_for_tranche(wallets[6], tranche_created_event.args.tranche_id.toString());
       //console.log("vested: " + vested)
       let withdraw_result = await assisted_withdraw_from_tranche(tranche_created_event.args.tranche_id, wallets[6]);
       //console.log("withdrawn: " + withdraw_result.args.amount.toString());
