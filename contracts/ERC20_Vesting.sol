@@ -35,6 +35,8 @@ contract ERC20_Vesting is IStake {
   uint256 constant public accuracy_scale = 100000000000;
   /// @notice default_tranche_id is the tranche_id for the default tranche
   uint8 constant public default_tranche_id = 0;
+  /// @dev total_staked_tokens is the number of tokens staked across all users
+  uint256 total_staked_tokens;
 
   /****ADDRESS MIGRATION**/
   /// @notice new address => old address
@@ -262,6 +264,7 @@ contract ERC20_Vesting is IStake {
     /// @dev Solidity ^0.8 has overflow protection, if this next line overflows, the transaction will revert
     user_stats[msg.sender].lien += amount;
     user_stats[msg.sender].stake[vega_public_key] += amount;
+    total_staked_tokens += amount;
     emit Stake_Deposited(msg.sender, amount, vega_public_key);
   }
 
@@ -275,6 +278,7 @@ contract ERC20_Vesting is IStake {
     user_stats[msg.sender].stake[vega_public_key] -= amount;
     /// @dev Solidity ^0.8 has overflow protection, if this next line overflows, the transaction will revert
     user_stats[msg.sender].lien -= amount;
+    total_staked_tokens -= amount;
     emit Stake_Removed(msg.sender, amount, vega_public_key);
   }
 
@@ -326,6 +330,12 @@ contract ERC20_Vesting is IStake {
   /// @return the number of tokens staked for that address->vega_public_key pair
   function stake_balance(address target, bytes32 vega_public_key) external override view returns (uint256) {
     return user_stats[target].stake[vega_public_key];
+  }
+
+  /// @dev This is IStake.total_staked
+  /// @return total tokens staked on contract
+  function total_staked() external override view returns (uint256) {
+    return total_staked_tokens;
   }
 
   /// @notice this modifier requires that msg.sender is the controller of this contract
