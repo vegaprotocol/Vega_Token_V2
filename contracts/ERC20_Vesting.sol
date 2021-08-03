@@ -50,6 +50,8 @@ contract ERC20_Vesting is IStake {
     require(old_addresses.length == new_addresses.length, "array length mismatch");
 
     for(uint8 map_idx = 0; map_idx < old_addresses.length; map_idx++) {
+      /// @dev the following line prevents double-mapping attack
+      require(!v1_migrated[old_addresses[map_idx]]);
       v1_migrated[old_addresses[map_idx]] = true;
       address_migration[new_addresses[map_idx]] = old_addresses[map_idx];
     }
