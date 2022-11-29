@@ -325,7 +325,7 @@ contract("ERC20_Vesting",  (accounts) => {
 
 
 
-    it("Stake tokens, fail to withdraw, remove stake", async() => {
+    it("Stake tokens, fail to withdraw, remove stake (0071-STAK-005, 0071-STAK-006, 0071-STAK-007)", async() => {
         let to_issue = "100000";
         //create 2 tranches that vest immediatly
         let cliff_start = "0";
