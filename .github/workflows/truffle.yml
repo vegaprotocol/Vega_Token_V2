@@ -32,7 +32,7 @@ jobs:
         run: npm run lint
       
       - name: Add dummy mnemonic
-        run: echo "hub addict trumpet remind ring twist erupt giggle excite animal allow perfect" > .secret
+        run: echo "cherry manage trip absorb logic half number test shed logic purpose rifle" > .secret
 
       - name: Compile contracts
         run: npx truffle compile
