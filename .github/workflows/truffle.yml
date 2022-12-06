@@ -1,0 +1,56 @@
+---
+
+name: Truffle CI
+
+"on":
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [15.x]
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v1
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Lint
+        continue-on-error: true
+        run: npm run lint
+      
+      - name: Add dummy mnemonic
+        run: echo "hub addict trumpet remind ring twist erupt giggle excite animal allow perfect" > .secret
+
+      - name: Compile contracts
+        run: npx truffle compile
+      
+      - name: Start ganache
+        run: npm run ganache &
+      
+      - name: Migrate contracts
+        run: npx truffle migrate
+
+      - name: Test
+        run: npm test
+        env:
+          ENABLE_GAS_REPORTER: true
+
+      # Currently broken due to inline Solidity asm
+      # - name: Code coverage
+      #   run: npx truffle run coverage
+      #   env:
+      #     ENABLE_GAS_REPORTER: true
+      
