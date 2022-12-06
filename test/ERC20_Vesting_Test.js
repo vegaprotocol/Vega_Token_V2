@@ -83,7 +83,7 @@ let withdraw_from_tranche = async (tranche_id) =>{
 let assisted_withdraw_from_tranche = async (tranche_id, target) =>{
   //withdraw_from_tranche(uint8 tranche_id) public
   let erc20_vesting_instance = await ERC20_Vesting.deployed();
-  let receipt = await erc20_vesting_instance.assisted_withdraw_from_tranche(tranche_id, target);
+  let receipt = await erc20_vesting_instance.assisted_withdraw_from_tranche(tranche_id, target, {from:wallets[0], gas:1000000});
   let result = receipt.logs.find(l => l.event === "Tranche_Balance_Removed");
   if(result === undefined){
     throw "Tranche_Balance_Removed event was not emitted";
@@ -315,15 +315,6 @@ contract("ERC20_Vesting",  (accounts) => {
       //console.log("final_balance: " + final_balance);
       assert.equal(final_balance.toString(), initial_balance.add(web3.utils.toBN(to_issue)).toString(), "wrong end balance" )
     });
-
-
-
-
-
-
-
-
-
 
     it("Stake tokens, fail to withdraw, remove stake (0071-STAK-005, 0071-STAK-006, 0071-STAK-007)", async() => {
         let to_issue = "100000";
